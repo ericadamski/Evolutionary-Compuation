@@ -6,7 +6,8 @@ breed [nodes node]
 
 globals [city_coordinates
          best_tour
-         best_tour_cost]
+         best_tour_cost
+         nn]
 
 edges-own [city_a
            city_b
@@ -87,6 +88,7 @@ to setup
 
   
   setup_cities
+  setup_nnh
   setup_edges
   setup_candidates
   setup_ants 
@@ -100,16 +102,10 @@ end
 to go
   ask ants [
     set tour get_path
-    
     set tour_cost get_tour_length tour
-      
-    if (tour_cost < best_tour_cost) [
-      set best_tour tour
-      set best_tour_cost tour_cost
-      update_best_tour
-    ] 
   ]
-    
+  find_best_tour
+  update_best_tour
   update_pheromone
   tick
 end
@@ -123,6 +119,7 @@ to setup_ants
     set tour_cost 0
   ]
   ask ants [set color red]
+  ask ants [show-turtle]
 end
 
 to setup_candidates
@@ -164,6 +161,22 @@ to setup_cities
   ]
 end
 
+to setup_nnh
+  set nn 0 
+  let remaining_cities [self] of nodes
+  let current_city first remaining_cities
+  let start current_city
+  set remaining_cities but-first remaining_cities
+  while [ not empty? remaining_cities ] [
+    set remaining_cities sort-by [ calculate_distance current_city ?1 < calculate_distance current_city ?2 ] remaining_cities
+    let closest_city first remaining_cities
+    set remaining_cities but-first remaining_cities
+    set nn nn + (calculate_distance current_city closest_city)
+    set current_city closest_city
+  ]
+  set nn nn + (calculate_distance start current_city)
+end
+
 to setup_edges
   let remaining_cities [self] of nodes
   while [not empty? remaining_cities] [
@@ -175,7 +188,7 @@ to setup_edges
           set city_a start
           set city_b ?
           set cost ceiling calculate_distance start ?
-          set pheromone random-float 0.1 
+          set pheromone ( 1 / ( 51 * nn )) 
         ]
       ]
     ]
@@ -217,6 +230,18 @@ to-report get_path
     let next_city choose_next_city current_city remaining_cities
     set new_tour lput next_city new_tour
     set remaining_cities remove next_city remaining_cities
+    let current 0
+    let next 0
+    let newx 0
+    let newy 0
+    ask current_city [ set current who ]
+    ask next_city [ 
+      set next who
+      set newx xcor
+      set newy ycor 
+    ]
+    setxy newx newy
+    ask edge current next [ set pheromone ( qnot * pheromone ) + ( evaporation_rate * ( 1 / ( 51 * nn ) )) ]
     set current_city next_city
   ]
 
@@ -225,7 +250,7 @@ end
 
 to-report has_candidate?
   ifelse ( cl <= 0 ) [ report false ]
-                 [ report true ]
+                     [ report true ]
 end
 
 to-report has_max_candidate?
@@ -234,7 +259,7 @@ to-report has_max_candidate?
   let _q random-float 1
   
   ifelse ( _q <= qnot ) [ report true ]
-                       [ report false ]
+                        [ report false ]
 end
 
 to-report choose_next_city [ current_city remaining_cities ]
@@ -256,10 +281,10 @@ to-report max_candidate [city]
   report get_destination city first m
 end
 
-to-report get_destination [current_city edge]
+to-report get_destination [current_city current_edge]
   let destination 0
-  ask edge [ ifelse (city_a = current_city) [ set destination city_b ]
-                                            [ set destination city_a ]
+  ask current_edge [ ifelse (city_a = current_city) [ set destination city_b ]
+                                                    [ set destination city_a ]
   ]
   
   report destination
@@ -328,13 +353,21 @@ end
 
 ;;;Update functions
 to update_pheromone
- ask edges [ set pheromone (pheromone * evaporation_rate) ]
-  
   ask ants [
     let new_pheromones (Q / tour_cost)
     foreach get_tour_edges tour [
       ask ? [ set pheromone ((1 - evaporation_rate) * pheromone + (evaporation_rate * new_pheromones)) ]
     ]
+  ]
+end
+
+to find_best_tour
+  ;; find the best tour
+  ask ants [
+    if (tour_cost < best_tour_cost) [
+      set best_tour tour
+      set best_tour_cost tour_cost
+    ] 
   ]
 end
 
@@ -380,10 +413,10 @@ SLIDER
 71
 evaporation_rate
 evaporation_rate
+0
 1
-100
-6
-1
+0.1
+0.1
 1
 NIL
 HORIZONTAL
@@ -613,7 +646,7 @@ Q
 Q
 1
 100
-100
+1
 1
 1
 NIL
@@ -679,7 +712,7 @@ cl
 cl
 0
 50
-10
+15
 1
 1
 NIL
@@ -694,11 +727,30 @@ qnot
 qnot
 0
 1
-0.1
+0.9
 0.1
 1
 NIL
 HORIZONTAL
+
+PLOT
+281
+738
+786
+1087
+plot
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot best_tour_cost"
+"pen-1" 1.0 0 -7500403 true "" ""
 
 @#$#@#$#@
 ## WHAT IS IT?
