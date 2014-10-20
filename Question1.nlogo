@@ -326,24 +326,23 @@ to-report movement_probabilities [current_city remaining_cities]
   let probabilities []
   let c_sum 0
   
-  ask current_city [ set c_sum candidate_sum ]
-  
   foreach remaining_cities [
     ask current_city [
       let current_edge edge-with ?
-      let probability ((pheromone_of current_edge) * (cost_of current_edge ^ beta))
+      let probability ((pheromone_of current_edge) * (1 / (cost_of current_edge)) ^ beta)
       set probabilities lput (list probability ?) probabilities
+      set c_sum (c_sum + probability)
     ]
   ]
   
   let p []
   foreach probabilities [
-    let prob first ?
-    let city last ?
-    set p lput (list (prob / c_sum) city) p
+    set p lput (list (first ? / c_sum) last ?) p
   ]
   
-  report probabilities
+  set p sort-by [ first ?1 < first ?2 ] p
+  
+  report p
 end
   
 
@@ -487,7 +486,7 @@ num_ants
 num_ants
 1
 50
-50
+40
 1
 1
 NIL
@@ -691,7 +690,7 @@ SLIDER
 beta
 beta
 0
-2
+5
 2
 0.1
 1
