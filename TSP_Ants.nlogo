@@ -105,7 +105,6 @@ to go
     set tour_cost get_tour_length tour
   ]
   find_best_tour
-  update_best_tour
   update_pheromone
   tick
 end
@@ -123,18 +122,12 @@ to setup_ants
 end
 
 to setup_candidates
-  foreach [self] of nodes [
-    let cl_list []
-    ask ? [
-      foreach [self] of my-edges [
-        set cl_list lput (list ?) cl_list
-      ]
-      set candidate_list sublist sort-by [ cost_of first ?1 > cost_of first ? ] cl_list 0 cl
-      foreach candidate_list [
-        let current_edge first ?
-        set candidate_sum candidate_sum + ((pheromone_of current_edge) * (cost_of current_edge) ^ beta)
-      ]
-    ]
+  ask nodes [
+    set candidate_list []
+    let remaining_cities [self] of nodes
+    set remaining_cities sort-by [ calculate_distance self ?1 < calculate_distance self ?2 ] remove self remaining_cities
+    set candidate_list sublist remaining_cities 0 cl
+    set candidate_sum sum map [ (pheromone_of ?) * (cost_of ?) ^ beta ] map [ edge_with? self ? ] filter [ member? ? candidate_list ] [self] of nodes
   ]
 end
 
@@ -268,17 +261,32 @@ to-report choose_next_city [ current_city remaining_cities ]
     report choose_city p
   ]
   [
-    report max_candidate current_city
+    report max_candidate current_city remaining_cities
   ]
 end
 
-to-report max_candidate [city]
-  let m 0
+to-report max_candidate [city remaining_cities]
+  let current_edge 0
+  let candidate_edges []
   ask city [
-    let v map [ (pheromone_of first ?) * (cost_of first ?) ^ beta ] candidate_list
-    set m item position max v v candidate_list
+    set candidate_edges map [ edge_with? self ? ] filter [ member? ? candidate_list ] remaining_cities
+    if not empty? candidate_edges [
+      let v map [ (pheromone_of ?) * (cost_of ?) ^ beta ] candidate_edges
+      set current_edge item position max v v candidate_edges
+    ]
   ]
-  report get_destination city first m
+  
+  ifelse current_edge = 0 [ report choose_next_city city remaining_cities ]
+                          [ report get_destination city current_edge ]
+end
+
+to-report edge_with? [c1 c2]
+  let ew 0
+  ask c1 [
+    set ew edge-with c2
+  ]
+  
+  report ew
 end
 
 to-report get_destination [current_city current_edge]
@@ -353,11 +361,8 @@ end
 
 ;;;Update functions
 to update_pheromone
-  ask ants [
-    let new_pheromones (Q / tour_cost)
-    foreach get_tour_edges tour [
-      ask ? [ set pheromone ((1 - evaporation_rate) * pheromone + (evaporation_rate * new_pheromones)) ]
-    ]
+  foreach get_tour_edges best_tour [
+    ask ? [ set pheromone ((qnot * pheromone) + (evaporation_rate * ( Q / best_tour_cost ))) ]
   ]
 end
 
@@ -367,6 +372,7 @@ to find_best_tour
     if (tour_cost < best_tour_cost) [
       set best_tour tour
       set best_tour_cost tour_cost
+      update_best_tour
     ] 
   ]
 end
@@ -415,7 +421,7 @@ evaporation_rate
 evaporation_rate
 0
 1
-0.1
+1
 0.1
 1
 NIL
