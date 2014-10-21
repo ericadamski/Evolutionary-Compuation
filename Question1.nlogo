@@ -111,14 +111,15 @@ end
 
 ;;; Setup Functions
 to setup_ants
-  set-default-shape ants "dot"
   create-ants num_ants [
     choose_location
     set tour []
     set tour_cost 0
   ]
   ask ants [set color red]
-  ask ants [show-turtle]
+  ask ants [set size 2
+            set shape "default" 
+            show-turtle]
 end
 
 to setup_candidates
@@ -149,6 +150,7 @@ to setup_cities
       setxy ( matrix:get city_coordinates i 0 ) 
             ( matrix:get city_coordinates i 1 ) 
       set color white
+      set size 0.9
     ]
     set i i + 1
   ]

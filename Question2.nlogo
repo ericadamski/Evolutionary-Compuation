@@ -2,23 +2,42 @@ turtles-own [
   flockmates         ;; agentset of nearby turtles
   nearest-neighbor   ;; closest one of our flockmates
   population
+  direction
 ]
 
 to setup
   clear-all
-  crt s1
-    [ set color yellow  ;; random shades look nice
+  
+  normalize_population
+  
+  crt get_size s1
+    [ set color yellow - 2 + random 3
       set size 1.5  ;; easier to see
       setxy random-xcor random-ycor
-      set population "s1"
+      set population 0
+      set direction s1_direction
+      set heading direction
     ]
-  crt s2
-    [ set color green  ;; random shades look nice
+  crt get_size s2
+    [ set color green - 2 + random 3;; random shades look nice
       set size 1.5  ;; easier to see
       setxy random-xcor random-ycor
-      set population "s2"
+      set population 1
+      set direction s2_direction
+      set heading direction
     ]
   reset-ticks
+end
+
+to normalize_population
+  if (((s1 + s2) != 1)) [
+    ifelse (s1 = 0) [ set s2 1 - max (list s1 s2) ]
+                    [ set s1 1 - max (list s1 s2) ]
+  ]
+end
+
+to-report get_size [percent]
+  report ceiling (population_size * percent)
 end
 
 to go
@@ -34,18 +53,18 @@ end
 
 to flock  ;; turtle procedure
   find-flockmates
-  ifelse any? flockmates
+  if any? flockmates
     [ find-nearest-neighbor
       ifelse distance nearest-neighbor < minimum-separation
         [ separate ]
         [ align
           cohere ] ]
-    [ turn-away 90 max-separate-turn ]
 end
 
 to find-flockmates  ;; turtle procedure
+  let my_population population
   let tmp_mates other turtles in-radius vision
-  set flockmates tmp_mates with [population = [population] of self]
+  set flockmates tmp_mates with [ population = my_population ]
 end
 
 to find-nearest-neighbor ;; turtle procedure
@@ -184,10 +203,10 @@ SLIDER
 84
 s1
 s1
-1.0
-1000.0
-126
-1.0
+0
+1
+0.5
+0.1
 1
 NIL
 HORIZONTAL
@@ -246,7 +265,7 @@ vision
 vision
 0.0
 10.0
-3
+5
 0.5
 1
 patches
@@ -275,12 +294,66 @@ SLIDER
 s2
 s2
 0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+10
+128
+233
+161
+population_size
+population_size
+0
 1000
-150
+4
 1
 1
 NIL
 HORIZONTAL
+
+INPUTBOX
+12
+170
+119
+230
+s1_direction
+90
+1
+0
+Number
+
+INPUTBOX
+123
+171
+235
+231
+s2_direction
+-90
+1
+0
+Number
+
+BUTTON
+67
+260
+130
+293
+go
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
