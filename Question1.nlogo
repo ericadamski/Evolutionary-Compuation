@@ -29,8 +29,8 @@ to setup
   
   set-default-shape nodes "circle"
   
-  set show_pheromones? false
-  set show_cities? true
+  set show_pheromone false
+  set show_ant false
   
   set city_coordinates matrix:from-row-list [
     [37 52]
@@ -105,6 +105,7 @@ to go
     set tour_cost get_tour_length tour
   ]
   find_best_tour
+  show_ants
   update_pheromone
   tick
 end
@@ -116,10 +117,10 @@ to setup_ants
     set tour []
     set tour_cost 0
   ]
+  
   ask ants [set color red]
   ask ants [set size 2
-            set shape "default" 
-            show-turtle]
+            set shape "default"]
 end
 
 to setup_candidates
@@ -193,12 +194,17 @@ end
 
 ;;; Display Functions
 to show_pheromones
-  if (show_pheromones?) [ set color yellow ]
-end 
-
-to show_cities
-  if (is_city? and show_cities?) [ set pcolor green ]
+  ask edges [
+    if (show_pheromone and pheromone > 0 ) [ set color yellow ]
+  ]
 end
+
+to show_ants
+  ask ants [
+    ifelse ( show_ant ) [ show-turtle ]
+                        [ hide-turtle ]
+  ]
+end 
 
 ;;; Path Functions
 to-report get_random_path
@@ -382,7 +388,14 @@ to update_best_tour
   ask edges [ hide-link ]
   foreach get_tour_edges best_tour [
     ask ? [ show-link ]
-    ask ? [ set color green ]
+    ask ? [ ifelse ( show_pheromone ) [ 
+              ifelse ( pheromone > 0 ) [
+                set color yellow 
+              ]
+              [ set color green ] 
+            ]
+            [ set color green ]
+    ]
   ]
 end
 @#$#@#$#@
@@ -480,10 +493,10 @@ NIL
 1
 
 SLIDER
-1309
-46
-1481
-79
+1035
+39
+1207
+72
 num_ants
 num_ants
 1
@@ -505,44 +518,14 @@ Pheromone Settings
 1
 
 TEXTBOX
-1366
-18
-1516
-36
+1092
+11
+1242
+29
 Ant Settings
 11
 0.0
 1
-
-SLIDER
-1310
-96
-1482
-129
-n
-n
-0
-100
-2
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1310
-148
-1482
-181
-k
-k
-0
-100
-5
-1
-1
-NIL
-HORIZONTAL
 
 BUTTON
 736
@@ -560,49 +543,6 @@ NIL
 NIL
 NIL
 1
-
-SWITCH
-1335
-254
-1469
-287
-show_cities?
-show_cities?
-0
-1
--1000
-
-SWITCH
-1314
-347
-1479
-380
-show_pheromones?
-show_pheromones?
-1
-1
--1000
-
-TEXTBOX
-1371
-222
-1521
-240
-Switches
-11
-0.0
-1
-
-SWITCH
-1338
-301
-1459
-334
-show_nest?
-show_nest?
-1
-1
--1000
 
 TEXTBOX
 56
@@ -625,10 +565,10 @@ RED dots = ants
 1
 
 TEXTBOX
-12
-112
-219
-146
+8
+94
+215
+128
 YELLOW patches = pheromones
 14
 44.0
@@ -639,9 +579,9 @@ TEXTBOX
 71
 163
 105
-GREEN patches = cities\n
+White Dots = cities\n
 14
-55.0
+0.0
 1
 
 SLIDER
@@ -711,10 +651,10 @@ best_tour_cost
 11
 
 SLIDER
-833
-327
-1005
-360
+827
+302
+999
+335
 cl
 cl
 0
@@ -726,10 +666,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-833
-372
-1005
-405
+827
+347
+999
+380
 qnot
 qnot
 0
@@ -746,18 +686,40 @@ PLOT
 786
 1087
 plot
-NIL
-NIL
+ticks
+best tour length
 0.0
-10.0
+2000.0
 0.0
-10.0
+1500.0
 true
 false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot best_tour_cost"
 "pen-1" 1.0 0 -7500403 true "" ""
+
+SWITCH
+1047
+124
+1214
+157
+show_pheromone
+show_pheromone
+1
+1
+-1000
+
+SWITCH
+1047
+165
+1213
+198
+show_ant
+show_ant
+1
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
