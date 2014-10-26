@@ -1,38 +1,78 @@
+globals [ norm-s1 norm-s2 ]
+
 turtles-own [
   flockmates         ;; agentset of nearby turtles
   nearest-neighbor   ;; closest one of our flockmates
   population
   direction
+  control
 ]
 
 to setup
   clear-all
   
+  set norm-s1 s1
+  set norm-s2 s2
+  
   normalize_population
   
-  crt get_size s1
+  show "Norm s1 " show norm-s1
+  show "Norm s2 " show norm-s2
+  
+  crt get_size norm-s1
     [ set color yellow - 2 + random 3
       set size 1.5  ;; easier to see
       setxy random-xcor random-ycor
       set population 0
-      set direction s1_direction
-      set heading direction
+      set heading random 360
+      set control false
     ]
-  crt get_size s2
+  crt get_size norm-s2
     [ set color green - 2 + random 3;; random shades look nice
       set size 1.5  ;; easier to see
       setxy random-xcor random-ycor
       set population 1
-      set direction s2_direction
-      set heading direction
+      set heading random 360
+      set control false
+    ]
+  crt 5
+    [
+      set color green - 2 + random 3;; random shades look nice
+      set size 1.5  ;; easier to see
+      setxy random-xcor random-ycor
+      set population 1
+      set heading s1_direction
+      set control true
+    ]
+  crt 5
+    [
+      set color yellow - 2 + random 3;; random shades look nice
+      set size 1.5  ;; easier to see
+      setxy random-xcor random-ycor
+      set population 0
+      set heading s2_direction
+      set control true
     ]
   reset-ticks
 end
 
+to-report average-heading [flock-population]
+  let avg 0
+  let total 0
+  
+  foreach [self] of turtles with [ population = flock-population ] [
+    set avg avg + [heading] of ?
+    set total total + 1
+  ]
+  
+  report avg / total
+end
+
 to normalize_population
   if (((s1 + s2) != 1)) [
-    ifelse (s1 = 0) [ set s2 1 - max (list s1 s2) ]
-                    [ set s1 1 - max (list s1 s2) ]
+    let m max (list s1 s2)
+    set norm-s1 m
+    set norm-s2 1 - m
   ]
 end
 
@@ -41,7 +81,7 @@ to-report get_size [percent]
 end
 
 to go
-  ask turtles [ flock ]
+  ask turtles with [ control = false ] [ flock ]
   ;; the following line is used to make the turtles
   ;; animate more smoothly.
   repeat 5 [ ask turtles [ fd 0.2 ] display ]
@@ -163,10 +203,10 @@ ticks
 30.0
 
 BUTTON
-41
-311
-118
-344
+77
+168
+154
+201
 NIL
 setup
 NIL
@@ -180,10 +220,10 @@ NIL
 1
 
 BUTTON
-132
-310
-205
-344
+157
+168
+230
+202
 NIL
 go
 T
@@ -205,7 +245,7 @@ s1
 s1
 0
 1
-0.5
+0.2
 0.1
 1
 NIL
@@ -295,7 +335,7 @@ s2
 s2
 0
 1
-0.5
+0.2
 0.1
 1
 NIL
@@ -310,39 +350,17 @@ population_size
 population_size
 0
 1000
-4
+1000
 1
 1
 NIL
 HORIZONTAL
 
-INPUTBOX
-12
-170
-119
-230
-s1_direction
-90
-1
-0
-Number
-
-INPUTBOX
-123
-171
-235
-231
-s2_direction
--90
-1
-0
-Number
-
 BUTTON
-67
-260
-130
-293
+11
+167
+74
+200
 go
 go
 NIL
@@ -354,6 +372,65 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+10
+221
+182
+254
+s1_direction
+s1_direction
+0
+360
+90
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+11
+259
+183
+292
+s2_direction
+s2_direction
+0
+360
+316
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+11
+200
+161
+218
+Initial Direction
+11
+0.0
+1
+
+PLOT
+763
+13
+1238
+538
+Average Heading
+time
+Average Heading
+0.0
+10.0
+0.0
+360.0
+true
+true
+"" ""
+PENS
+"Flock-S1" 1.0 0 -11085214 true "" "plot average-heading 0"
+"Flock-S2" 1.0 0 -14730904 true "" "plot average-heading 1"
 
 @#$#@#$#@
 ## WHAT IS IT?
