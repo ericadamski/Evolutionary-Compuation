@@ -1,4 +1,7 @@
-globals [squiggle-knot squiggle-one squiggle-two min-rt max-rt a b] ;;constants
+globals [squiggle-knot squiggle-one squiggle-two min-rt max-rt a b
+  ant1-rt
+  ant2-rt
+  ant3-rt] 
 
 breed [ants ant]
 breed [zones zone]
@@ -22,7 +25,7 @@ to setup
     set squiggle-two 70
     set squiggle-knot 10
     
-    set min-rt 0
+    set min-rt 1
     set max-rt 1000                ;; set constants
     
     set a 0.5
@@ -34,7 +37,7 @@ to setup
 end
 
 to setup-response-thresholds
-  ;; Links each ant to every zone and defaults response threshold to all zones to 500
+  ;; Links each ant to every zone and defaults response threshold of all zones to 500
   ask ants [
     let current_ant self
     let current_zones [self] of zones
@@ -50,9 +53,9 @@ to setup-response-thresholds
 end
 
 to setup-zones
-  ;; Creates a zone for every patch and defualts demand to min-rt
+  ;; Creates a zone for every patch and defualts demand to 0
   create-zones 25 [
-    set demand min-rt
+    set demand 0
     hide-turtle
   ]
   
@@ -65,89 +68,38 @@ to setup-zones
         set xcor [pxcor] of ?
         set ycor [pycor] of ?
       ]
-      set pcolor white
+      set pcolor 9
     ]
     set current_zones but-first current_zones
   ]
 end
 
 to setup-ants
-  ;; Creates num_ants ants at random locations
-  create-ants num_ants
+  ;; Creates num_ants ants at random locations. If demand is set too high, addition ants will be created
+  ifelse (num_ants >= (demand_increase / 10)) [ create-ants num_ants ]
+                                             [ create-ants ((demand_increase / 10) + 1) (show "Demand Too High: Additional ants created.") ]
   ask ants 
   [
     set size 0.5
-    set color red 
+    set color random 100
     set xcor (random 5) 
     set ycor (random 5)
-    set available? true  
-    set heading 0 
-    set destination 0
+    set available? true   
+    set destination ([my_zone] of patch-here)
   ]
 end
 
 ;; Go Function
 
 to go 
-  ifelse display_demand? [ display_demand ]
-                         [ ask patches [ set pcolor white ] ]
   iterate
   consult-ants
+  ifelse display_demand? [ display_demand ]
+                         [ ask patches [ set pcolor white ] ]
 end
 
 
 ;; Calculation Functions
-
-to consult-ants
-  ;; Consults every ant and determines whether or not it will respond to the demand of one of its adjacent zones
-  ask ants with [available? = false] [
-    move 
-  ]
-  
-  ask ants with [available? = true] [
-    let chosen false
-    let rand random-float 1
-    let me self
-    set destination 0
-    
-    foreach [self] of zones [
-      let prob response_probability me ?
-      if ( rand < prob and (not chosen)) [
-        set chosen true
-        set destination ?
-        respond
-      ]
-    ]
-  ]
-end
-
-to-report response_probability [an_ant a_task]
-  ;; Calculates the probability of an_ant responding to a_task
-  let s ([demand] of a_task ^ 2)
-  let thresh [rt_value] of first [self] of response-thresholds with [ owner = an_ant and _task = a_task ]
-  report s / ( s + (a * thresh) + (b * (distance a_task)) )
-end
-
-to respond
-  ;; Sends an ant (me) to a_zone to satisfy the zone's demand
-  set available? false
-  move
-end
-
-to move
-  ;; if at destination set available true otherwise move 1 toward destination
-  if (xcor = [xcor] of destination and ycor = [ycor] of destination) [
-  ;; if at destination then
-    set available? true
-    
-    ask destination [
-      set demand 0
-    ]
-  ]
-  ;; move from current location one toward the destination zone 
-  face destination 
-  forward 1
-end
 
 to iterate
   ;; Updates the demand of 5 random zones and updates the thresholds of all ants
@@ -156,7 +108,53 @@ to iterate
   while [i < 5] [
      ask patch random-pxcor random-pycor [ ask my_zone [ if ( not any? ants-here ) [ set demand (demand + demand_increase) set i i + 1] ] ]
   ]
-  update-thresholds
+end
+
+to consult-ants
+  ;; Consults every ant and determines whether or not it will respond to the demand of one the zones
+    ask ants with [available? = true] 
+    [
+      let chosen false
+      let rand random-float 1
+      let me self
+    
+      foreach [self] of zones 
+      [
+        let prob response_probability me ?
+        if ( rand < prob and (not chosen))    ;; calculate probability that agent will respond
+        [
+          let random-failure (random 100)
+          if (random-failure < failure_prob)   ;; chance that an agent will fail to perform its task
+          [
+            set chosen true
+            set destination ?
+            set available? false
+            ask destination [set demand 0]
+            update-thresholds
+           ] 
+         ]
+       ]
+     ]
+    
+     ask ants with [available? = false] [ move ]
+end
+
+to-report response_probability [an_ant a_task]
+  ;; Calculates the probability of an_ant responding to a_task
+  let s (([demand] of a_task) ^ 2)
+  let thresh [rt_value] of first [self] of response-thresholds with [ owner = an_ant and _task = a_task ]
+  report s / ( s + (a * (thresh ^ 2)) + (b * ((distance a_task) ^ 2)) )
+end
+
+to move
+  ;; Moves an agent 1 square closer to its destination
+  face destination 
+  set heading ((round (heading / 90)) * 90) ;; face up, down, left or right
+  forward 1
+  
+  ask destination [ set demand 0 ]
+  
+  if (xcor = [xcor] of destination and ycor = [ycor] of destination) [ set available? true ]
 end
 
 to-report is_adjacent? [me a_zone]
@@ -177,18 +175,6 @@ to-report is_adjacent? [me a_zone]
   report isadj
 end
 
-to display_demand
-  ask zones [
-    let x xcor
-    let y ycor
-    let d demand
-    
-    let the_COLOR d / demand_increase + 1
-    ifelse ( the_COLOR < 10 ) [ ask patch-at x y [ set pcolor 10 - the_COLOR ] ]
-                              [ ask patch-at x y [ set pcolor 10 ] ]
-  ]
-end
-
 to update-thresholds
   ;; Updates the thresholds of all ants
   ask ants [
@@ -198,13 +184,13 @@ to update-thresholds
       let t [_task] of ?
       let _rt [rt_value] of ?
       
-      ifelse ( [xcor] of t = [xcor] of o and [ycor] of t = [ycor] of o ) [
+      ifelse ( [xcor] of destination = [xcor] of t and [ycor] of destination = [ycor] of t ) [
         ;; rt = rt - squiggle-one
         ifelse ( _rt - squiggle-one < min-rt ) [ ask ? [ set rt_value min-rt ] ]
                                                [ ask ? [ set rt_value _rt - squiggle-one ] ]
       ]
       [ 
-        ifelse is_adjacent? o t [
+        ifelse is_adjacent? destination t [
           ;; rt = rt - squiggle-two
           ifelse ( _rt - squiggle-two < min-rt ) [ ask ? [ set rt_value min-rt ] ]
                                                  [ ask ? [ set rt_value _rt - squiggle-two ] ]
@@ -216,6 +202,18 @@ to update-thresholds
         ]
       ]
     ]
+  ]
+end
+
+to display_demand
+  ;; Colors patches according to the amount of demand related to their task if display_demand? is true
+  ;; Darker colors = more demand
+  ask patches [
+    let d ([demand] of my_zone)
+    let the_color (d / 50 + 1)
+    
+    ifelse (the_color < 10) [set pcolor (10 - the_color)]
+                            [set pcolor 10]
   ]
 end
 @#$#@#$#@
@@ -255,7 +253,7 @@ num_ants
 num_ants
 1
 10
-1
+5
 1
 1
 NIL
@@ -351,6 +349,26 @@ NIL
 NIL
 NIL
 NIL
+1
+
+TEXTBOX
+1171
+207
+1406
+241
+Darker Square = Higher Demand
+14
+0.0
+1
+
+TEXTBOX
+1201
+245
+1351
+296
+  White -> 0 Demand\n\nBlack -> Demand > 500
+14
+0.0
 1
 
 @#$#@#$#@
