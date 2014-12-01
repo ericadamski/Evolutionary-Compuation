@@ -7,6 +7,7 @@ breed [hidden-nodes hidden-node]
 
 turtles-own [
   activation     ;; Determines the nodes output ( I think this may need to be changed )
+  normalize      ;; = (value - [column-min])/([column-max - column-min])
   err            ;; Used by backpropagation to feed error backwards
 ]
 
@@ -48,6 +49,10 @@ globals [
   
   min-activation
   max-activation
+  
+  virginica
+  setosa
+  versicolor
 ]
 
 ;;;
@@ -55,6 +60,9 @@ globals [
 ;;;
 
 to setup
+  set virginica  0
+  set setosa     0.5
+  set versicolor 1
   clear-all
   set test-set [
      ["iris-setosa" [
@@ -214,8 +222,6 @@ to setup
       [5.9 3.0 5.1 1.8]
     ]]
   ]
-  set min-activation min-value
-  set max-activation max-value
   ask patches [ set pcolor gray ]
   set-default-shape bias-nodes "bias-node"
   set-default-shape input-nodes "circle"
@@ -227,6 +233,8 @@ to setup
   setup-setosa
   setup-versicolor
   setup-virginica
+  set min-activation min-value
+  set max-activation max-value
   setup-flower-nodes
   setup-flower-links
   propagate
@@ -237,18 +245,60 @@ to setup-virginica
   let virginica-data-set get-data-set "virginica"
   set virginica-test-set build-test-set ( (length virginica-data-set) / 2 ) virginica-data-set
   set virginica-verification-set filter [ not member? ? virginica-data-set ] virginica-test-set
+  
+  let normalized-test-virginica []
+  let normalized-veri-virginica []
+  
+  foreach virginica-verification-set [
+    set normalized-veri-virginica lput column-normalization ? normalized-veri-virginica 
+  ]
+  
+  foreach virginica-test-set [
+    set normalized-test-virginica lput column-normalization ? normalized-test-virginica
+  ]
+  
+  set virginica-test-set normalized-test-virginica
+  set virginica-verification-set normalized-veri-virginica
 end
 
 to setup-setosa
   let setosa-data-set get-data-set "setosa"
   set setosa-test-set build-test-set ( (length setosa-data-set) / 2 ) setosa-data-set
   set setosa-verification-set filter [ not member? ? setosa-data-set ] setosa-test-set
+  
+  let normalized-test []
+  let normalized-veri []
+  
+  foreach setosa-test-set [
+     set normalized-test lput column-normalization ? normalized-test
+  ]
+  
+  foreach setosa-verification-set [
+     set normalized-veri lput column-normalization ? normalized-veri
+  ]
+  
+  set setosa-test-set normalized-test
+  set setosa-verification-set normalized-veri
 end
 
 to setup-versicolor
   let versicolor-data-set get-data-set "versicolor"
   set versicolor-test-set build-test-set ( (length versicolor-data-set) / 2 ) versicolor-data-set
   set versicolor-verification-set filter [ not member? ? versicolor-data-set ] versicolor-test-set
+  
+  let normalized-test []
+  let normalized-veri []
+  
+  foreach versicolor-test-set [
+     set normalized-test lput column-normalization ? normalized-test
+  ]
+  
+  foreach versicolor-verification-set [
+     set normalized-veri lput column-normalization ? normalized-veri
+  ]
+  
+  set versicolor-test-set normalized-test
+  set versicolor-verification-set normalized-veri
 end
 
 to setup-nodes
@@ -364,26 +414,60 @@ end
 ;;;
 
 to train
-  set epoch-error 0
-  repeat examples-per-epoch [
-    ask input-nodes [ set activation random 2 ]
-    propagate
-    back-propagate
+  ;; assign a value from a test column ( [ a b c d ] ) to an input node,
+  ;; check the output value against the class ( 0 .5 1 )
+  ;; back propagate if incorrect
+  let classes (list setosa versicolor virginica)
+  foreach classes [
+    let class ?
+    foreach get-test-set class [
+      assign-input-node-values ?
+      propagate
+      back-propagate class
+    ]
   ]
-  set epoch-error epoch-error / examples-per-epoch
   tick
+end
+
+to assign-input-node-values [colm]
+  ask sepal-width-node [ set activation first colm]
+  ask sepal-length-node [ set activation first but-first colm ]
+  ask petal-width-node [ set activation last but-last colm ]
+  ask petal-length-node [ set activation last colm ]
+end
+
+to-report get-test-set [class]
+  if class = setosa [
+    ;;setosa
+    report setosa-test-set
+  ]
+  
+  if class = versicolor [
+    ;;versicolor
+    report versicolor-test-set
+  ]
+  
+  if class = virginica [
+    ;;virginica
+    report virginica-test-set
+  ]
 end
 
 ;;;
 ;;; FUNCTIONS TO LEARN
 ;;;
 
-to-report target-answer
-  let a [activation] of input-node-1 = 1
-  let b [activation] of input-node-2 = 1
-  ;; run-result will interpret target-function as the appropriate boolean operator
-  report ifelse-value run-result
-    (word "a " target-function " b") [1][0]
+to-report classification [class]
+  ;; percent?
+  report 0
+end
+
+to-report average-classification
+  let setosa-classification classification setosa
+  let versicolor-classification classification versicolor
+  let virginica-classification classification virginica
+  
+  report ( setosa-classification + versicolor-classification + virginica-classification ) / 3
 end
 
 ;;;
@@ -403,15 +487,13 @@ to-report new-activation  ;; node procedure
 end
 
 ;; changes weights to correct for errors
-to back-propagate
+to back-propagate [answer] 
   let example-error 0
-  let answer target-answer
-
-  ask output-node-1 [
+   
+  ask classification-node [
     set err activation * (1 - activation) * (answer - activation)
     set example-error example-error + ( (answer - activation) ^ 2 )
   ]
-  set epoch-error epoch-error + example-error
   
   ;; The hidden layer nodes are given error values adjusted appropriately for their
   ;; link weights
@@ -476,12 +558,20 @@ end
 ;;;
 
 ;; test runs one instance and computes the output
-to test
-  let result result-for-inputs input-1 input-2
-  let correct? ifelse-value (result = target-answer) ["correct"] ["incorrect"]
-  user-message (word
-    "The expected answer for " input-1 " " target-function " " input-2 " is " target-answer ".\n\n"
-    "The network reported " result ", which is " correct? ".")
+to-report test-set-CA
+  let test-ca 0
+  
+  let classes (list setosa versicolor virginica)
+  foreach classes [
+    let class ?
+    foreach get-test-set class [
+      propagate
+    ]
+    ask output-node-1 [
+      set test-ca test-ca + ( (class - output) ^ 2 )
+    ]
+  ]
+  report (1 - (test-ca / 75)) * 100
 end
 
 to-report result-for-inputs [n1 n2]
@@ -515,6 +605,21 @@ end
 
 to-report random-activation
   report (random max-activation) + min-activation
+end
+
+to-report column-normalization [colm]
+  ;;colm is of the form [a b c d]
+  let colm-max max colm
+  let colm-min min colm
+  let xij map [ ? - colm-min ] colm
+  
+  let out []
+  
+  foreach xij [
+    set out lput (? / ( colm-max - colm-min )) out
+  ]
+  
+  report out
 end
 
 ; Copyright 2006 Uri Wilensky.
@@ -581,50 +686,13 @@ NIL
 NIL
 1
 
-BUTTON
-560
-135
-655
-169
-test
-test
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-CHOOSER
-560
-35
-655
-80
-input-1
-input-1
-0 1
-0
-
-CHOOSER
-560
-85
-655
-130
-input-2
-input-2
-0 1
-0
-
 MONITOR
-490
+235
 280
-547
+392
 325
-output
-[precision activation 2] of one-of output-nodes
+Classification Accuracy
+average-classification
 3
 1
 11
@@ -677,16 +745,6 @@ examples-per-epoch
 NIL
 HORIZONTAL
 
-CHOOSER
-235
-280
-395
-325
-target-function
-target-function
-"or" "xor"
-0
-
 TEXTBOX
 10
 20
@@ -707,16 +765,6 @@ TEXTBOX
 0.0
 0
 
-TEXTBOX
-560
-15
-710
-33
-3. Test neural net:
-11
-0.0
-0
-
 SWITCH
 235
 330
@@ -724,7 +772,7 @@ SWITCH
 363
 show-weights?
 show-weights?
-1
+0
 1
 -1000
 
