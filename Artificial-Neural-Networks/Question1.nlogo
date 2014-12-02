@@ -7,7 +7,6 @@ breed [hidden-nodes hidden-node]
 
 turtles-own [
   activation     ;; Determines the nodes output ( I think this may need to be changed )
-  normalize      ;; = (value - [column-min])/([column-max - column-min])
   err            ;; Used by backpropagation to feed error backwards
 ]
 
@@ -60,10 +59,10 @@ globals [
 ;;;
 
 to setup
-  set virginica  0
-  set setosa     0.5
-  set versicolor 1
   clear-all
+  set virginica 0.0
+  set setosa 0.5
+  set versicolor 1.0
   set test-set [
      ["iris-setosa" [
       [5.1 3.5 1.4 0.2]
@@ -556,7 +555,19 @@ end
 ;;;
 ;;; TESTING PROCEDURES
 ;;;
-
+to-report get-verification-set [class]
+  if class = setosa [
+    report setosa-verification-set
+  ]
+  
+  if class = virginica [
+    report virginica-verification-set
+  ]
+  
+  if class = versicolor [
+    report versicolor-verification-set
+  ]
+end
 ;; test runs one instance and computes the output
 to-report test-set-CA
   let test-ca 0
@@ -564,11 +575,11 @@ to-report test-set-CA
   let classes (list setosa versicolor virginica)
   foreach classes [
     let class ?
-    foreach get-test-set class [
+    foreach get-verification-set class [
       propagate
     ]
-    ask output-node-1 [
-      set test-ca test-ca + ( (class - output) ^ 2 )
+    ask classification-node [
+      set test-ca test-ca + ( (class - activation) ^ 2 )
     ]
   ]
   report (1 - (test-ca / 75)) * 100
@@ -692,7 +703,7 @@ MONITOR
 392
 325
 Classification Accuracy
-average-classification
+test-set-CA
 3
 1
 11
@@ -730,21 +741,6 @@ false
 PENS
 "default" 1.0 0 -16777216 true "" "plot epoch-error"
 
-SLIDER
-14
-168
-220
-201
-examples-per-epoch
-examples-per-epoch
-1.0
-1000.0
-500
-1.0
-1
-NIL
-HORIZONTAL
-
 TEXTBOX
 10
 20
@@ -772,7 +768,7 @@ SWITCH
 363
 show-weights?
 show-weights?
-0
+1
 1
 -1000
 

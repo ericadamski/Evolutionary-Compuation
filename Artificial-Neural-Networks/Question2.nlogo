@@ -16,20 +16,23 @@ to setup
   clear-all
   reset-ticks
   set training-data [
-   [1 0 0]
-   [0 1 0]
-   [0 0 1]
-   [1 1 0]
-   [1 0 1]
-   [0 1 1]
+   [255 0 0]
+   [0 255 0]
+   [0 0 255]
+   [255 255 0]
+   [255 0 255]
+   [0 255 255]
+   [0 0 0]
+   [255 255 255]
+   [125 125 125]
   ]
   no-display
   set learning-rate initial-learning-rate
   set-default-shape turtles "square"
   setup-lattice
   set total-ticks num-ticks
-  set bmu-neighbourhood lattice-size / 2
-  set time-constant num-ticks / log 10 bmu-neighbourhood
+  set bmu-neighbourhood 30
+  set time-constant num-ticks / ln bmu-neighbourhood
   display
   update-colors
 end
@@ -45,7 +48,7 @@ to setup-lattice
       setxy patch-x patch-y 
       set weights []
       while [ length weights < 3 ] [
-        set weights lput random-float 1 weights
+        set weights lput random 256 weights
       ]
       let me self
       ask patch-here [
@@ -64,23 +67,32 @@ to setup-lattice
 end
 
 to train
-  if total-ticks != 0 [
+  ifelse total-ticks != 0 [
     find-bmu
     tick
     update-learning-rate
     set total-ticks total-ticks - 1
+  ][
+    stop
   ]
   update-colors
 end
 
 to update-learning-rate
-  set learning-rate initial-learning-rate * exp ( - (ticks / total-ticks) )
+  set learning-rate initial-learning-rate * exp ( - (ticks / num-ticks) )
 end
 
 to update-colors
   no-display
-  ask lattice-nodes [
-    set color map [ ? * 200 ] weights
+  ask patches [
+    let w []
+    if node != 0 [
+      ask node [
+        set color weights
+        set w weights
+      ]
+      set pcolor w
+    ]
   ]
   display
 end
@@ -101,10 +113,10 @@ end
 to find-bmu
   let current-vector one-of training-data
   let best-fit 0
-  let best-fit-num 0
+  let best-fit-num 22220
   foreach [self] of lattice-nodes [
     let test-fit calculate-distance current-vector [weights] of ?
-    if test-fit > best-fit-num [
+    if test-fit < best-fit-num [
       ;; new best fit
       set best-fit ?
       set best-fit-num test-fit
@@ -118,18 +130,28 @@ to-report neighbourhood-radius
   report bmu-neighbourhood * exp ( - (ticks / time-constant) )
 end
 
+to-report get-distance [ some-node ]
+  let bmu-x xcor
+  let bmu-y ycor
+  let x [xcor] of some-node
+  let y [ycor] of some-node
+  
+  report (bmu-x - x) ^ 2 + (bmu-y - y) ^ 2
+end
+
 to adjust-weight-inside-bmu-radius [ current-test-vertex ]
   ;; w + theta*learning-rate*(v - w)
   ;; theta = exp ( - ((distancexy x y ^ 2)/2 * ( neighbourhood-radius ^ 2)) )
-  let nodes-in-neighbourhood filter [ distancexy [xcor] of ? [ycor] of ? < neighbourhood-radius ] [self] of lattice-nodes
-  let radius 2 * neighbourhood-radius
+  let rad neighbourhood-radius ^ 2
+  let nodes-in-neighbourhood filter [ get-distance ? < rad ] [self] of lattice-nodes
+  let radius 2 * rad
   foreach nodes-in-neighbourhood [
-    let theta exp ( - (distancexy [xcor] of ? [ycor] of ?) / radius )
+    let theta exp ( - (get-distance ?) / radius )
     let new-weights []
     let index 0
     foreach [weights] of ? [
        let v item index current-test-vertex
-       set new-weights lput (? + (theta * learning-rate * ( v - ? ))) new-weights
+       set new-weights lput (? + (learning-rate * theta * ( v - ? ))) new-weights
        set index index + 1
     ]
     ask ? [
@@ -174,7 +196,7 @@ initial-learning-rate
 initial-learning-rate
 0
 1
-0.07
+0.1
 0.0001
 1
 NIL
@@ -248,7 +270,7 @@ SLIDER
 num-ticks
 num-ticks
 0
-1000
+2000
 500
 1
 1
