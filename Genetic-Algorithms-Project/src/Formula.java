@@ -60,14 +60,14 @@ public class Formula
   public int getAnswer()
   { return m_answer; }
 
-  public ArrayList<Integer> getOrderedCoefficents()
+  public ArrayList<Integer> getOrderedcoefficients()
   { return new ArrayList<Integer>(m_terminals.values()); }
 
   public Set<Character> getOrderedVariables()
   { return m_terminals.keySet(); }
 
-  public int getNoncoefficents()
-  { return m_noncoefficents; }
+  public int getNoncoefficients()
+  { return m_noncoefficients; }
 
   private boolean splitTerminals(String terminals[])
   {
@@ -82,7 +82,7 @@ public class Formula
           //NUMBER
           try
           {
-            m_noncoefficents += Integer.parseInt(splitTerm[0]);
+            m_noncoefficients += Integer.parseInt(splitTerm[0]);
           }
           catch (Exception e)
           {
@@ -94,17 +94,17 @@ public class Formula
           //NUMBER<VAR>
           try
           {
-            int coefficent = Integer.parseInt(splitTerm[0]);
+            int coefficient = Integer.parseInt(splitTerm[0]);
             char variable = splitTerm[1].charAt(0);
 
             if (m_terminals.containsKey(variable))
             {
               int temp = m_terminals.get(variable);
-              m_terminals.put(variable, temp + coefficent);
+              m_terminals.put(variable, temp + coefficient);
             }
             else
             {
-              m_terminals.put(variable, coefficent);
+              m_terminals.put(variable, coefficient);
             }
           }
           catch (Exception e)
@@ -122,7 +122,7 @@ public class Formula
 
   private String m_formula;
   private HashMap<Character,Integer> m_terminals;
-  private int m_noncoefficents;
+  private int m_noncoefficients;
   private int m_answer;
 
   public static void main(String[] args)
@@ -136,11 +136,11 @@ public class Formula
         if ( !parser.parse(formula) )
           improperFormulaErrorMsg(formula);
 
-        for ( int i : parser.getOrderedCoefficents() )
+        for ( int i : parser.getOrderedcoefficients() )
           System.out.println(i);
         for ( char c : parser.getOrderedVariables() )
           System.out.println(c);
-        System.out.println(parser.getNoncoefficents());
+        System.out.println(parser.getNoncoefficients());
       }
       else
         improperFormulaErrorMsg(formula);
