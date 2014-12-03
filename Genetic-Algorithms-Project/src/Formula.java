@@ -3,7 +3,9 @@ import java.util.*;
 public class Formula
 {
   public Formula ()
-  {}
+  {
+    m_terminals = new HashMap<Character, Integer>();
+  }
 
   public boolean parse(String formula)
   {
@@ -39,7 +41,6 @@ public class Formula
       return complete;
 
     m_formula = formula;
-    m_terminals = terms;
 
     return splitTerminals(terms);
   }
@@ -53,17 +54,17 @@ public class Formula
   public String getFormula()
   { return m_formula; }
 
-  public String[] getTerminals()
+  public HashMap<Character, Integer> getTerminals()
   { return m_terminals; }
 
   public int getAnswer()
   { return m_answer; }
 
-  public int[] getOrderedCoefficents()
-  { return m_coefficents; }
+  public ArrayList<Integer> getOrderedCoefficents()
+  { return new ArrayList<Integer>(m_terminals.values()); }
 
-  public char[] getOrderedVariables()
-  { return m_variables; }
+  public Set<Character> getOrderedVariables()
+  { return m_terminals.keySet(); }
 
   public int getNoncoefficents()
   { return m_noncoefficents; }
@@ -71,21 +72,8 @@ public class Formula
   private boolean splitTerminals(String terminals[])
   {
     // pairs of the form NUMBERletter and NUMBER and ?=?
-    int terminalLength = 0;
     for (String term : terminals)
     {
-      String splitTerm[] = term.split("(?<=(\\D+))|(?=(\\D+))");
-      if ( splitTerm.length > 1 )
-        ++terminalLength;
-    }
-    int terminalCount = 0;
-    m_variables = new char[terminalLength];
-    m_coefficents = new int[terminalLength];
-    for (String term : terminals)
-    {
-      int num;
-      String var = "";
-
       String splitTerm[] = term.split("(?<=(\\D+))|(?=(\\D+))");
 
       switch (splitTerm.length)
@@ -106,8 +94,18 @@ public class Formula
           //NUMBER<VAR>
           try
           {
-            m_coefficents[terminalCount] = Integer.parseInt(splitTerm[0]);
-            m_variables[terminalCount] = splitTerm[1].charAt(0);
+            int coefficent = Integer.parseInt(splitTerm[0]);
+            char variable = splitTerm[1].charAt(0);
+
+            if (m_terminals.containsKey(variable))
+            {
+              int temp = m_terminals.get(variable);
+              m_terminals.put(variable, temp + coefficent);
+            }
+            else
+            {
+              m_terminals.put(variable, coefficent);
+            }
           }
           catch (Exception e)
           {
@@ -118,16 +116,12 @@ public class Formula
         default:
           return false;
       }
-      ++terminalCount;
     }
     return true;
   }
 
   private String m_formula;
-  private String m_terminals[]; // numberletter pairs
-
-  private int m_coefficents[]; // number
-  private char m_variables[]; // letter
+  private HashMap<Character,Integer> m_terminals;
   private int m_noncoefficents;
   private int m_answer;
 
