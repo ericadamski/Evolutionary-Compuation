@@ -5,7 +5,7 @@ public class IrisClassificationFitnessFunction extends FitnessFunction {
 
 	private static final long serialVersionUID = 1L;
 	private final int targetAttribute;
-	
+
 	// first 50 = Iris-setosa
 	// 50 to 100 = Iris-versicolour
 	// last 50 = Iris-virginica
@@ -35,49 +35,49 @@ public class IrisClassificationFitnessFunction extends FitnessFunction {
 		{6.5,3.2,5.1,2.0}, {6.4,2.7,5.3,1.9}, {6.8,3.0,5.5,2.1}, {5.7,2.5,5.0,2.0}, {5.8,2.8,5.1,2.4},
 		{6.4,3.2,5.3,2.3}, {6.5,3.0,5.5,1.8}, {7.7,3.8,6.7,2.2}, {7.7,2.6,6.9,2.3}, {6.0,2.2,5.0,1.5},
 		{6.9,3.2,5.7,2.3}, {5.6,2.8,4.9,2.0}, {7.7,2.8,6.7,2.0}, {6.3,2.7,4.9,1.8}, {6.7,3.3,5.7,2.1},
-		{7.2,3.2,6.0,1.8}, {6.2,2.8,4.8,1.8}, {6.1,3.0,4.9,1.8}, {6.4,2.8,5.6,2.1}, {7.2,3.0,5.8,1.6}, 
+		{7.2,3.2,6.0,1.8}, {6.2,2.8,4.8,1.8}, {6.1,3.0,4.9,1.8}, {6.4,2.8,5.6,2.1}, {7.2,3.0,5.8,1.6},
 		{7.4,2.8,6.1,1.9}, {7.9,3.8,6.4,2.0}, {6.4,2.8,5.6,2.2}, {6.3,2.8,5.1,1.5}, {6.1,2.6,5.6,1.4},
 		{7.7,3.0,6.1,2.3}, {6.3,3.4,5.6,2.4}, {6.4,3.1,5.5,1.8}, {6.0,3.0,4.8,1.8}, {6.9,3.1,5.4,2.1},
 		{6.7,3.1,5.6,2.4}, {6.9,3.1,5.1,2.3}, {5.8,2.7,5.1,1.9}, {6.8,3.2,5.9,2.3}, {6.7,3.3,5.7,2.5},
 		{6.7,3.0,5.2,2.3}, {6.3,2.5,5.0,1.9}, {6.5,3.0,5.2,2.0}, {6.2,3.4,5.4,2.3}, {5.9,3.0,5.1,1.8}}; //150
-	
+
 	public IrisClassificationFitnessFunction(int attrIndex)
 	{
 		if (attrIndex < 0 || attrIndex > 3)
 		{
 			throw new IllegalArgumentException("Attribute does not exist");
 		}
-		
+
 		targetAttribute = attrIndex;
 	}
-	
+
 	public double evaluate(IChromosome a_subject)
 	{
 		double fitness = 0;
-		
+
 		for (int i=0; i < 150; i++)
 		{
 			String guess = "";
 			Gene[] genes = a_subject.getGenes();
 			double attr = data[i][targetAttribute];
-			
-			if (attr < ((DoubleGene) genes[0]).doubleValue()) 
-				guess = "Iris-setosa";  
+
+			if (attr < ((DoubleGene) genes[0]).doubleValue())
+				guess = "Iris-setosa";
 			else {
-				if (attr < ((DoubleGene) genes[1]).doubleValue()) 
-				guess = "Iris-versicolour";  
+				if (attr < ((DoubleGene) genes[1]).doubleValue())
+				guess = "Iris-versicolour";
 				else {
-					if (attr < ((DoubleGene) genes[2]).doubleValue()) 
-						guess = "Iris-virginica";  
+					if (attr < ((DoubleGene) genes[2]).doubleValue())
+						guess = "Iris-virginica";
 				}
 			}
 			// if guess is correct, fitness++
-			if ( (i < 50 && guess == "Iris-setosa") || 
+			if ( (i < 50 && guess == "Iris-setosa") ||
 				 (i > 49 && i < 100 && guess == "Iris-versicolour") ||
 				 (i > 99 && i < 150 && guess == "Iris-virginica"))
 				fitness++;
 		}
-		
+
 		return fitness;
 	}
 }
