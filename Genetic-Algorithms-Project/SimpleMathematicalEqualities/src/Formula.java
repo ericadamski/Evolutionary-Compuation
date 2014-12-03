@@ -94,14 +94,29 @@ public class Formula
       switch (splitTerm.length)
       {
         case 1:
-          //NUMBER
-          try
+          //NUMBER or 1*<VAR>
+          if (splitTerm[0].matches("[a-zA-Z]"))
           {
-            m_noncoefficients += Integer.parseInt(splitTerm[0]);
+            if (m_terminals.containsKey(term.charAt(0)))
+            {
+              int temp = m_terminals.get(term.charAt(0));
+              m_terminals.put(term.charAt(0), ++temp);
+            }
+            else
+            {
+              m_terminals.put(term.charAt(0), 1);
+            }
           }
-          catch (Exception e)
+          else
           {
-            return false;
+            try
+            {
+              m_noncoefficients += Integer.parseInt(splitTerm[0]);
+            }
+            catch (Exception e)
+            {
+              return false;
+            }
           }
           break;
 
