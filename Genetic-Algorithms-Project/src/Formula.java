@@ -91,11 +91,11 @@ public class Formula
     for (String term : terminals)
     {
       String splitTerm[] = term.split("(?<=(\\D+))|(?=(\\D+))");
-
+      
       switch (splitTerm.length)
       {
         case 1:
-          //NUMBER
+          //NUMBEr
           try
           {
             m_noncoefficients += Integer.parseInt(splitTerm[0]);
@@ -110,7 +110,11 @@ public class Formula
           //NUMBER<VAR>
           try
           {
-            int coefficient = Integer.parseInt(splitTerm[0]);
+            int coefficient = 0;
+            if (splitTerm[0].equals(""))
+              coefficient = 1;
+            else
+              coefficient = Integer.parseInt(splitTerm[0]);
             char variable = splitTerm[1].charAt(0);
 
             if (m_terminals.containsKey(variable))
