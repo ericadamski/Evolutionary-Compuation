@@ -5,12 +5,15 @@ public class Formula
   public Formula ()
   {
     m_terminals = new HashMap<Character, Integer>();
+    m_variableValues = new HashMap<Character,Integer>();
   }
 
   public boolean parse(String formula)
   {
     // A formula is of the form Ax+Bx+Cx+Dx+ .... +c= NUMBER (NO SPACES)
     // Where A B C D and c are constants in R
+    if (formula.length() == 0)
+      return false;
     String terms[] = formula.split("\\+");
     Boolean complete = false;
     for ( String term : terms )
@@ -69,6 +72,19 @@ public class Formula
   public int getNoncoefficients()
   { return m_noncoefficients; }
 
+  public void addResult(char variable, int value)
+  { m_variableValues.put(variable, value); }
+
+  public String getResultAsString()
+  {
+    String result = "Result : ";
+    for (char var : m_variableValues.keySet())
+    {
+      result += "\n " + var + " = " + m_variableValues.get(var);
+    }
+    return result;
+  }
+
   private boolean splitTerminals(String terminals[])
   {
     // pairs of the form NUMBERletter and NUMBER and ?=?
@@ -122,6 +138,7 @@ public class Formula
 
   private String m_formula;
   private HashMap<Character,Integer> m_terminals;
+  private HashMap<Character,Integer> m_variableValues;
   private int m_noncoefficients;
   private int m_answer;
 
@@ -141,6 +158,14 @@ public class Formula
         for ( char c : parser.getOrderedVariables() )
           System.out.println(c);
         System.out.println(parser.getNoncoefficients());
+        System.out.println(parser.getFormula());
+
+        parser.addResult('x', 100);
+        parser.addResult('y', 140);
+        parser.addResult('z', 1);
+
+        System.out.println(parser.getResultAsString());
+
       }
       else
         improperFormulaErrorMsg(formula);
