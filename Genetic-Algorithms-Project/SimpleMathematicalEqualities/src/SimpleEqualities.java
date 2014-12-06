@@ -1,32 +1,33 @@
 import java.util.ArrayList;
 
 import org.jgap.*;
-import org.jgap.impl.BestChromosomesSelector;
+import org.jgap.impl.CrossoverOperator;
 import org.jgap.impl.DefaultConfiguration;
 import org.jgap.impl.IntegerGene;
 import org.jgap.impl.MutationOperator;
 
 public class SimpleEqualities {
 	
-	public static final int m_numEvolutions = 5000;
-	public static final int m_popSize = 1000;
+	public static final int m_maxEvolutions = 10;
+	public static final int m_popSize = 100;
+	public static int iterations = 0;
 	private static Formula m_formula;
 	
 	public static void runGA() throws Exception
 	{
 		Configuration conf = new DefaultConfiguration();
-		BestChromosomesSelector bestChromsSelector = new BestChromosomesSelector(conf, 0.05d);
-		bestChromsSelector.setDoubletteChromosomesAllowed(false);
-	    conf.addNaturalSelector(bestChromsSelector, true);
-		conf.addGeneticOperator(new MutationOperator(conf, 20));
 		
+		/* MANUALLY CHANGE CROSSOVER/MUTATION VALUES */
+	    //conf.addGeneticOperator(new CrossoverOperator(conf, 0.02d));
+		//conf.addGeneticOperator(new MutationOperator(conf, 5));
 		
 		ArrayList<Character> vars = m_formula.getOrderedVariables();
 		int size = vars.size();
 		Gene[] sampleGenes = new Gene[size];
 		
 		for (int i=0; i < size; i++)
-			sampleGenes[i] = new IntegerGene(conf, 0, 30); //get max/min funcs
+			sampleGenes[i] = new IntegerGene(conf, 0, m_formula.getAnswer()); 
+			// variable values cannot be larger than the answer
 		
 		Chromosome sampleChromosome = new Chromosome(conf, sampleGenes);
 		conf.setSampleChromosome(sampleChromosome);
@@ -37,12 +38,13 @@ public class SimpleEqualities {
 		
 		Genotype population = Genotype.randomInitialGenotype(conf);
 		
-		IChromosome best = null;
+		IChromosome best = population.getFittestChromosome();
 		
-		for (int i=0; i < m_numEvolutions; i++)
+		while (best.getFitnessValue() != 1)
 		{
 			population.evolve();
 			best = population.getFittestChromosome();
+			iterations++;
 		}
 		
 		for (int i=0; i < vars.size(); i++)
@@ -52,6 +54,8 @@ public class SimpleEqualities {
 		}
 		
 		System.out.println(m_formula.getResultAsString());
+		System.out.println("");
+		System.out.println("Answer found in " + iterations + " iterations");
 	}
 	
 	public static boolean getFormula(String[] args)

@@ -28,6 +28,7 @@ public class EqualitiesFitnessFunction extends FitnessFunction{
 			answer += coefficients.get(i) * ((IntegerGene) genes[i]).intValue();
 		}
 		
+		answer += m_formula.getNoncoefficients();
 		fitness = 1 / (Math.abs(m_formula.getAnswer() - answer) + 1);
 		
 		return fitness;
